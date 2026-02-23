@@ -1,5 +1,7 @@
 # ViTSP: A Vision Language Models Guided Framework for Large-Scale Traveling Salesman Problems
-This is the repo for ViTSP published at ICLR2026
+
+
+This is the repo for ViTSP accepted by **ICLR 2026**.
 
 
 If you find our work useful, please cite:
