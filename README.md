@@ -32,11 +32,13 @@ Learning-based methods have shown promise in combinatorial optimization, but the
 ## 
 If you find our work useful, please cite:
 ```
-@inproceedings{yin2026vitsp,
-  title={ViTSP: A Vision Language Models Guided Framework for Large-Scale Traveling Salesman Problems},
-  author={Yin, Zhuoli and Ding, Yi and Khir, Reem and Cai, Hua},
-  booktitle={The Fourteenth International Conference on Learning Representations (ICLR)},
-  year={2026}
+@inproceedings{
+yin2026vitsp,
+title={Vi{TSP}: A Vision Language Models Guided Framework for Large-Scale Traveling Salesman Problems},
+author={Zhuoli Yin and Yi Ding and Reem Khir and Hua Cai},
+booktitle={The Fourteenth International Conference on Learning Representations},
+year={2026},
+url={https://openreview.net/forum?id=2LoaiaGKuV}
 }
 ```
 
