@@ -1,4 +1,4 @@
-# ViTSP: A Vision Language Models Guided Framework for Large-Scale Traveling Salesman Problems
+# ViTSP: A Vision Language Models Guided Framework for Solving Large-Scale Traveling Salesman Problems
 
 <div align="center">
   
