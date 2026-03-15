@@ -207,9 +207,10 @@ python -m LLM_TSP.main \
     --solver_model concorde \
     --initial_solution_model LKH \
     --max_workers 8 \
+    --keep_selection_trajectory \
     --llm_subproblem_selection 2
 ```
-Per-instance time budgets can be customized in `ablation_config.py`. Alternatively, individual instances can be terminated early using a K-consecutive-non-improvement stopping criterion.
+Per-instance time budgets can also be customized in `ablation_config.py`. Alternatively, individual instances can be terminated early using a K-consecutive-non-improvement stopping criterion.
 
 **Output:** CSV files saved to `./experiments/ViTSP/` containing the objective trajectory and system profile.
 
@@ -217,14 +218,17 @@ Per-instance time budgets can be customized in `ablation_config.py`. Alternative
 
 ### Random Baseline (No VLM as the visual selector)
 
-To run the random sub-rectangle selection baseline (no API calls needed):
+To run the random sub-rectangle or sub-sequence selection baseline (no API calls needed):
 
 ```bash
 python -m LLM_TSP.main \
     --fast_llm_model random \
     --reasoning_llm_model random \
     --random_selection \
-    --total_time_budget 500
+    --solver_model concorde \
+    --initial_solution_model LKH \
+    --max_workers 8 \
+    --select_sequence \ # optinal for sub-sequence selection
 ```
 
 ### Custom Instances (10K nodes)
@@ -240,9 +244,7 @@ python -m LLM_TSP.main \
 To generate new random instances:
 
 ```bash
-python -m helper.generate_instance \
-    --n_nodes 5000 \
-    --max_xy 10000 \
+python -m helper.tsp_generate_instance \
     --output_dir ./data/instances/my_tsps/
 ```
 
@@ -259,8 +261,7 @@ All arguments are defined in `src/LLM_TSP/main.py`:
 | `--instance_path` | str | `./data/instances/tsplib_original` | Path to `.tsp` file or directory |
 | `--exp_output_path` | str | `./experiments/ViTSP` | Output directory for experiment CSVs |
 | `--total_time_budget` | float | `1000` | Wall-clock time budget in seconds |
-| `--max_iterations` | int | `10` | Max optimization iterations |
-| `--max_workers` | int | `8` | Max parallel Concorde solver processes |
+| `--max_workers` | int | `8` | Max parallel Concorde solver processes. Can be adjusted based on available CPU cores|
 
 ### Initial Solution
 
@@ -283,7 +284,7 @@ All arguments are defined in `src/LLM_TSP/main.py`:
 | `--fast_llm_model` | str | `gpt-4.1-2025-04-14` | Fast-thinking VLM model name. Use `random` for no-LLM baseline |
 | `--reasoning_llm_model` | str | `o4-mini-2025-04-16` | Reasoning VLM model name. Use `random` for no-LLM baseline |
 | `--llm_subproblem_selection` | int | `2` | Number of sub-rectangles the LLM proposes per call |
-| `--gridding_resolution` | int | `5` | Grid divisions for hierarchical zoom-in |
+| `--gridding_resolution` | int | `5` | Grid divisions for reference |
 | `--keep_selection_trajectory` | flag | off | Include selection history in LLM prompts |
 | `--select_sequence` | flag | off | Select route sequences instead of rectangles |
 | `--random_selection` | flag | off | Use random selection (no LLM) |
