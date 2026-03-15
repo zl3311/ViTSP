@@ -32,6 +32,19 @@ Learning-based methods have shown promise in combinatorial optimization, but the
 - Training-free generalization across TSP scales, outperforming learning-based methods
 
 ---
+## Citation
+If you find our work useful, please cite:
+```
+@inproceedings{
+yin2026vitsp,
+title={Vi{TSP}: A Vision Language Models Guided Framework for Large-Scale Traveling Salesman Problems},
+author={Zhuoli Yin and Yi Ding and Reem Khir and Hua Cai},
+booktitle={The Fourteenth International Conference on Learning Representations},
+year={2026},
+url={https://openreview.net/forum?id=2LoaiaGKuV}
+}
+```
+---
 
 ## Repository Structure
 ```
@@ -290,17 +303,5 @@ All arguments are defined in `src/LLM_TSP/main.py`:
 | `--random_selection` | flag | off | Use random selection (no LLM) |
 | `--hard_coded_subrectangle` | flag | off | Use hard-coded sub-rectangles (testing only) |
 
----
-## Citation
-If you find our work useful, please cite:
-```
-@inproceedings{
-yin2026vitsp,
-title={Vi{TSP}: A Vision Language Models Guided Framework for Large-Scale Traveling Salesman Problems},
-author={Zhuoli Yin and Yi Ding and Reem Khir and Hua Cai},
-booktitle={The Fourteenth International Conference on Learning Representations},
-year={2026},
-url={https://openreview.net/forum?id=2LoaiaGKuV}
-}
-```
+
 
