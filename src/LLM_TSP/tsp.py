@@ -270,10 +270,10 @@ class SubTSP():
 
         self.distance_mat = np.zeros((total, total), dtype=self.global_distance_mat.dtype)
 
-        # === Precompute representative nodes ===
-        seg_out_reps = np.array([self.route_segments[self.segment_map[i]][-1] for i in range(num_segments)])
-        seg_in_reps = np.array([self.route_segments[self.segment_map[i]][0] for i in range(num_segments)])
-        node_reps = np.array([self.node_map[i] for i in range(num_segments, total)])
+        # === Precompute representative nodes (ensure integer dtype for indexing) ===
+        seg_out_reps = np.array([self.route_segments[self.segment_map[i]][-1] for i in range(num_segments)], dtype=np.intp)
+        seg_in_reps = np.array([self.route_segments[self.segment_map[i]][0] for i in range(num_segments)], dtype=np.intp)
+        node_reps = np.array([self.node_map[i] for i in range(num_segments, total)], dtype=np.intp)
 
         # === Fill segment->segment block (top-left) ===
         self.distance_mat[:num_segments, :num_segments] = self.global_distance_mat[np.ix_(seg_out_reps, seg_in_reps)]
@@ -364,10 +364,10 @@ class SubTSP():
         global_mat = cp.asarray(self.global_distance_mat) if not isinstance(self.global_distance_mat,
                                                                             cp.ndarray) else self.global_distance_mat
 
-        # Precompute representative node indices
-        seg_out_reps = cp.array([self.route_segments[self.segment_map[i]][-1] for i in range(num_segments)])
-        seg_in_reps = cp.array([self.route_segments[self.segment_map[i]][0] for i in range(num_segments)])
-        node_reps = cp.array([self.node_map[i] for i in range(num_segments, total)])
+        # Precompute representative node indices (ensure integer dtype for indexing)
+        seg_out_reps = cp.array([self.route_segments[self.segment_map[i]][-1] for i in range(num_segments)], dtype=cp.intp)
+        seg_in_reps = cp.array([self.route_segments[self.segment_map[i]][0] for i in range(num_segments)], dtype=cp.intp)
+        node_reps = cp.array([self.node_map[i] for i in range(num_segments, total)], dtype=cp.intp)
 
         # Fill blocks
         self.distance_mat[:num_segments, :num_segments] = global_mat[cp.ix_(seg_out_reps, seg_in_reps)]

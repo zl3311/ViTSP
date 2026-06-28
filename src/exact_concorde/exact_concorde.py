@@ -1,9 +1,24 @@
 from concorde.tsp import TSPSolver
 from concorde.tests.data_utils import get_dataset_path
+import multiprocessing as mp
 import time
 import tempfile
 import os
 import numpy as np
+
+
+def _solve_in_subprocess(tsp_file_path, timelimit, verbose, result_queue):
+    """Run Concorde solver in an isolated process so it can be killed."""
+    try:
+        solver = TSPSolver.from_tspfile(tsp_file_path)
+        solution = solver.solve(time_bound=timelimit, verbose=verbose)
+        result_queue.put({
+            "tour": solution.tour.tolist(),
+            "optimal_value": int(solution.optimal_value),
+        })
+    except Exception as e:
+        result_queue.put({"error": str(e)})
+
 
 class Concorde:
     def __init__(self, nodes=None, coordinates=None, dist_matrix=None, file_path=None):
@@ -16,18 +31,18 @@ class Concorde:
         self.solution = None
         self.route = []
         self.obj_value = 0
+        self.optimal_value = 0
         self.latency = 0
 
         if not ((self.nodes and self.coordinates) or self.dist_matrix is not None):
             raise ValueError("Either (nodes and coordinates) or a distance matrix must be provided.")
 
-        # Generate a pseudo TSP file and initialize the solver if instance is generated on the go
-        # if the instance has a real file, directly import this file
         if file_path is None:
             self.pseudo_file = self._generate_pseudo_file()
-            self.solver = TSPSolver.from_tspfile(self.pseudo_file.name)
+            self._tsp_file_path = self.pseudo_file.name
         else:
-            self.solver = TSPSolver.from_tspfile(file_path)
+            self.pseudo_file = None
+            self._tsp_file_path = file_path
 
     def _generate_pseudo_file(self):
         """
@@ -43,7 +58,7 @@ class Concorde:
             dimension = len(self.dist_matrix)
             temp_file.write(f"DIMENSION : {dimension}\n")
             temp_file.write("EDGE_WEIGHT_TYPE: EXPLICIT\n")
-            temp_file.write("EDGE_WEIGHT_FORMAT: FULL_MATRIX\n") # TODO: use UPPER_ROW to save time
+            temp_file.write("EDGE_WEIGHT_FORMAT: FULL_MATRIX\n")
             temp_file.write("EDGE_WEIGHT_SECTION\n")
 
             for row in self.dist_matrix:
@@ -62,27 +77,72 @@ class Concorde:
             raise ValueError("Invalid input: Either (nodes and coordinates) or a distance matrix must be provided.")
 
         temp_file.write("EOF\n")
-        temp_file.flush()  # Ensure all data is written to disk
+        temp_file.flush()
         return temp_file
 
     def optimize(self, timelimit: float = -1.0, verbose=True):
+        """Solve via Concorde in a subprocess with a hard timeout.
+
+        If the solver exceeds ``timelimit + 5`` seconds, the subprocess
+        is terminated and the instance is treated as unsolved.
+        """
+        hard_limit = (timelimit + 5) if timelimit > 0 else 30
+
+        result_queue = mp.Queue()
+        proc = mp.Process(
+            target=_solve_in_subprocess,
+            args=(self._tsp_file_path, timelimit, verbose, result_queue),
+        )
+
         start_time = time.time()
-        self.solution = self.solver.solve(time_bound=timelimit, verbose=verbose)
+        proc.start()
+        proc.join(timeout=hard_limit)
         self.latency = time.time() - start_time
 
-        self.route = self.solution.tour.tolist()
-        self.route.append(self.route[0])  #TODO: check if need
+        if proc.is_alive():
+            print(f"[TIMEOUT] Concorde exceeded hard limit ({hard_limit:.0f}s), terminating")
+            proc.terminate()
+            proc.join(timeout=2)
+            if proc.is_alive():
+                proc.kill()
+                proc.join(timeout=1)
+            self.route = []
+            self.optimal_value = 0
+            self.solution = None
+            return
+
+        if result_queue.empty():
+            print("[CONCORDE] Solver returned no result")
+            self.route = []
+            self.optimal_value = 0
+            self.solution = None
+            return
+
+        result = result_queue.get_nowait()
+        if "error" in result:
+            print(f"[CONCORDE] Solver error: {result['error']}")
+            self.route = []
+            self.optimal_value = 0
+            self.solution = None
+            return
+
+        self.route = result["tour"]
+        self.route.append(self.route[0])
+        self.optimal_value = result["optimal_value"]
+        self.solution = type("Solution", (), {
+            "tour": np.array(result["tour"]),
+            "optimal_value": result["optimal_value"],
+        })()
 
     def get_tsp_route(self):
         return self.route
+
     def get_objective_value(self):
-        return self.solution.optimal_value
+        return self.optimal_value
 
     def cleanup(self):
-        """
-        Clean up the temporary pseudo TSP file.
-        """
-        if os.path.exists(self.pseudo_file.name):
+        """Clean up the temporary pseudo TSP file."""
+        if self.pseudo_file and os.path.exists(self.pseudo_file.name):
             os.unlink(self.pseudo_file.name)
 
 def determine_instance_boundary(coordinates):
