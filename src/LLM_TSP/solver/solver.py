@@ -302,12 +302,22 @@ def process_subTSP(args, task, tsp_instance, current_route, current_obj, result_
 
     removed_nodes, route_segments = task.removed_nodes, task.route_segments
 
-    # Perform the sub-TSP computation
-    results = reformulate_and_solve_subTSP(args, tsp_instance, current_route, current_obj, route_segments, removed_nodes)
+    try:
+        results = reformulate_and_solve_subTSP(args, tsp_instance, current_route, current_obj, route_segments, removed_nodes)
+    except Exception as e:
+        print(f"[process_subTSP] Error solving subproblem: {e}")
+        task.new_route = current_route
+        task.new_obj = current_obj
+        task.solver_latency = 0.0
+        try:
+            result_queue.put(task, block=False)
+        except queue.Full:
+            pass
+        return
+
     task.new_route      = results[0]
     task.new_obj        = results[1]
     task.solver_latency = results[2]
-    # result_queue.put(results, block=False)  # Send the result back to the parent process
     try:
         result_queue.put(task, block=False)
     except queue.Full:
@@ -442,12 +452,24 @@ def solver_master(args, initialization_latency, tsp_instance, pending_subproblem
         results = []
         completed_processes = 0
         num_processes = len(tasks)
+        wait_deadline = time.time() + args.SolverTimeLimit + 20
 
         while completed_processes < num_processes:
+            if time.time() > wait_deadline:
+                log.warning('Subproblem wait timeout, collected %d/%d', completed_processes, num_processes)
+                break
             if not result_queue.empty():
                 task = result_queue.get()
                 results.append(task)
                 completed_processes += 1
+            else:
+                time.sleep(0.05)
+
+        for p in processes:
+            if p.is_alive():
+                p.terminate()
+                p.join(timeout=2)
+
         log.info('Time spent in multiprocessing subTSPs: %f', time.time() - start_time)
 
         if results:
@@ -681,12 +703,23 @@ def subproblem_solver(subproblem, config):
     results = []
     completed_processes = 0
     num_processes = len(tasks)
+    wait_deadline = time.time() + config.args.SolverTimeLimit + 20
 
     while completed_processes < num_processes:
+        if time.time() > wait_deadline:
+            log.warning('Subproblem wait timeout, collected %d/%d', completed_processes, num_processes)
+            break
         if not result_queue.empty():
             task = result_queue.get()
             results.append(task)
             completed_processes += 1
+        else:
+            time.sleep(0.05)
+
+    for p in processes:
+        if p.is_alive():
+            p.terminate()
+            p.join(timeout=2)
 
     log.info('Time spent in multiprocessing subTSPs: %f', time.time() - start_time)
 
@@ -838,12 +871,23 @@ def subproblem_verifier(subproblem, config):
     results = []
     completed_processes = 0
     num_processes = len(tasks)
+    wait_deadline = time.time() + config.args.SolverTimeLimit + 20
 
     while completed_processes < num_processes:
+        if time.time() > wait_deadline:
+            log.warning('Subproblem wait timeout, collected %d/%d', completed_processes, num_processes)
+            break
         if not result_queue.empty():
             task = result_queue.get()
             results.append(task)
             completed_processes += 1
+        else:
+            time.sleep(0.05)
+
+    for p in processes:
+        if p.is_alive():
+            p.terminate()
+            p.join(timeout=2)
 
     log.info('Time spent in multiprocessing subTSPs: %f', time.time() - start_time)
 

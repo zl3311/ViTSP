@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+*.egg
+LKH-3.0.13/
+*.tgz
+.DS_Store
